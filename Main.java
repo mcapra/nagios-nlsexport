@@ -42,7 +42,6 @@ public class Main {
 		dateEnd = end;
 		outputPath = path;
 		outputFormat = format;
-		outputFormat = "csv";
 		queryString = query;
 		sourceElasticURL = "http://" + ip + ":9200/";
 		
@@ -54,7 +53,7 @@ public class Main {
 	 * @param level The level of the event we are logging
 	 */
 	public void log(String event, int level) {
-		String levelString;
+		String levelString; //unused currently
 		
 		switch (level) {
 			case 0:  levelString = "";
@@ -116,13 +115,8 @@ public class Main {
 				ArrayList<String> types = getTypesForIndex(index);
 				
 				for(String type : types) {
-					//index = index+"/"+type;
 					log("Writing data from [" + index + "/" + type + "].",0);
 					
-					//Ready to pull data
-					//long recordCount = getIndexRecordCount(index);
-					//log("Found " + recordCount + " total documents in [" + index + "]", 0);
-
 					try{	
 						String scrollId = startIndexScroll(index+"/"+type, 100, outputPath+index+"_"+type+".json", queryString);
 						//Skip scroll if no results
@@ -176,17 +170,14 @@ public class Main {
 								writer.println(headerOut);
 								
 								for(String s : scrollBuffer) {
-									/* todo format buffer */
 									JsonParser jp = new JsonParser();
 									try {
 										s = s.replaceAll("^\"|\"$", "");
 										writer.println(jsonToCsv(headers, (JsonObject)jp.parse(s)));
-										//writer.println(jsonToCsv(headers,(JsonObject)jp.parse(s)));
 								    }
 									catch (JsonSyntaxException e) {
 										System.out.println("Malformed JSON received. Check your query's syntax!");
 									}
-									//writer.println(jsonToCsv((JsonObject)jp.parse(s)));
 								}
 								
 								//process the rest of the scroll
@@ -195,64 +186,12 @@ public class Main {
 									JsonObject scroller = getScrollData(scrollId);
 									JsonArray records = (JsonArray)scroller.getAsJsonObject("hits").get("hits");
 									for(int i=0; i<records.size(); i++) {
-										/*
-										String id = ((JsonObject)(records.get(i))).get("_id").toString();
-										String type = ((JsonObject)(records.get(i))).get("_type").toString();
-										String source = ((JsonObject)(records.get(i))).get("_source").toString();
-										
-										//strip quotes because JsonObject is weird
-										id = id.replaceAll("^\"|\"$", "");
-										type = type.replaceAll("^\"|\"$", "");
-										source = source.replaceAll("^\"|\"$", "");
-										source = fixMessage(source);
-										*/
-										//String source = ((JsonObject)(records.get(i))).get("_source").toString();
-										/* todo format result */
-										//source = jsonToCsv(headers, (JsonObject)((JsonObject)(records.get(i))).get("_source"));
 										writer.println(jsonToCsv(headers, (JsonObject)((JsonObject)(records.get(i))).get("_source")));
 									}
 									count++;;
 								}
 								System.out.println("");
 								writer.close();
-							}
-							else if (outputFormat.equals("text")) {
-								PrintWriter writer = new PrintWriter(outputPath+index+"_"+type+".txt", "UTF-8");
-								
-								/* todo write the column headers here */
-								
-								for(String s : scrollBuffer) {
-									/* todo format buffer */
-									writer.println(s);
-								}
-								
-								//process the rest of the scroll
-								while(count < num) {
-									progressBar.tickOne();
-									JsonObject scroller = getScrollData(scrollId);
-									JsonArray records = (JsonArray)scroller.getAsJsonObject("hits").get("hits");
-									for(int i=0; i<records.size(); i++) {
-										/*
-										String id = ((JsonObject)(records.get(i))).get("_id").toString();
-										String type = ((JsonObject)(records.get(i))).get("_type").toString();
-										String source = ((JsonObject)(records.get(i))).get("_source").toString();
-										
-										//strip quotes because JsonObject is weird
-										id = id.replaceAll("^\"|\"$", "");
-										type = type.replaceAll("^\"|\"$", "");
-										source = source.replaceAll("^\"|\"$", "");
-										source = fixMessage(source);
-										*/
-										String source = ((JsonObject)(records.get(i))).get("_source").toString();
-										/* todo format result */
-										writer.println(source);
-									}
-									count++;;
-								}
-								System.out.println("");
-								writer.close();
-								
-								/* todo text formatting */
 							}
 						
 						}
@@ -584,8 +523,6 @@ public class Main {
 		String out = "";
 		
 		for (Map.Entry<String,JsonElement> entry : headers.entrySet()) {
-			//System.out.println(source.get(entry.getKey()));
-			//if array, shit I dunno convert it to a String?
 			try {
 				if(source.get(entry.getKey()) == null) {
 			    	out+=",";
