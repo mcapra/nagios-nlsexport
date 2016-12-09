@@ -528,7 +528,7 @@ public class Main {
 			    	out+=",";
 			    }
 				else {
-					out+=source.get(entry.getKey()).getAsString() + ",";
+					out+="\"" + stripReserved(source.get(entry.getKey()).getAsString()) + "\",";
 				}
 			}
 			// entry is an actual json null, not just empty. todo handle this gracefully
@@ -540,7 +540,7 @@ public class Main {
     			Iterator<JsonElement> elements = ((JsonArray)source.get(entry.getKey())).iterator();
     			out += "\"";
     			while(elements.hasNext()) {
-    				 out += elements.next().getAsString() + " ";
+    				 out += stripReserved(elements.next().getAsString()) + " ";
     			}
     			out += "\",";
     		}
@@ -552,13 +552,25 @@ public class Main {
 		return unEscapeString(out);
 	}
 	
-	public static String unEscapeString(String s){
+	public static String unEscapeString(String s) {
 	    StringBuilder sb = new StringBuilder();
 	    for (int i=0; i<s.length(); i++)
 	        switch (s.charAt(i)){
 	            case '\n': sb.append("\\n"); break;
 	            case '\t': sb.append("\\t"); break;
 	            case '\r': sb.append("\\r"); break;
+	            // ... rest of escape characters
+	            default: sb.append(s.charAt(i));
+	        }
+	    return sb.toString();
+	}
+	
+	public static String stripReserved(String s) {
+		StringBuilder sb = new StringBuilder();
+	    for (int i=0; i<s.length(); i++)
+	        switch (s.charAt(i)){
+	            case ',': sb.append(""); break;
+	            case '\"': sb.append(""); break;
 	            // ... rest of escape characters
 	            default: sb.append(s.charAt(i));
 	        }

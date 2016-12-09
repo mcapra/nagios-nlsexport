@@ -14,6 +14,7 @@ import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+import org.kohsuke.args4j.ParserProperties;
 
 public class run {
 	
@@ -50,17 +51,19 @@ public class run {
 	}
 	
 	public void doMain(String[] args) throws IOException {
-		CmdLineParser parser = new CmdLineParser(this);
+		ParserProperties p = ParserProperties.defaults();
+		CmdLineParser parser = new CmdLineParser(this, p.withOptionValueDelimiter("="));
 		
 
         try {
         	//parser.parseArgument(args);
-        	for(String s : args) {
-        		parser.parseArgument(s);
+        	String s = "";
+        	for(int i=0; i<args.length; i++) {
+        		s = args[i];
+        		parser.parseArgument(args[i]);
         	}
         } 
         catch( CmdLineException e ) {
-            //printUsage();
             e.printStackTrace();
             return;
         }
@@ -120,7 +123,7 @@ public class run {
 	}
 	
 	public static void printUsage() {
-		System.out.println("Version - 1.2.0");
+		System.out.println("Version - 1.2.1");
 		System.out.println("Usage: java -jar nlsexport.jar -host -date_start -date_end -output_path [-output_format] [-query]");
 		System.out.println("host - The hostname or ip address of the remote Elasticsearch machine. Your Elasticsearch API must be front-facing for this application to work.");
 		System.out.println("date_start - The starting date of your data set in yyyy.mm.dd format.");
