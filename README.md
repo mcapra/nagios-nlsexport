@@ -1,7 +1,7 @@
 # nagios-nlsexport
 Export all of your Nagios Log Server data, or only some of it, with this handy application.
 ```
-Version - 1.2.0
+Version - 1.2.1
 Usage: java -jar nlsexport.jar -host -date_start -date_end -output_path [-output_format] [-query]
 host - The hostname or ip address of the remote Elasticsearch machine. Your Elasticsearch API must be front-facing for this application to work.
 date_start - The starting date of your data set in yyyy.mm.dd format.
@@ -16,6 +16,10 @@ Sample: java -jar nlsexport.jar -host=localhost -date_start=2015.01.01 -date_end
 ----- Exports all syslog entries (given the query) from the year 2015 into raw JSON (default) into the /home/juser/export_nls path.
 
 ```
+
+# Version - 1.2.1
+* Fixed an issue with CSV formatting
+* Fixed an issue with command-line args having spaces in them
 
 # Version - 1.2.0
 * Added CSV output
