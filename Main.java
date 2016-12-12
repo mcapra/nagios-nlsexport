@@ -114,6 +114,9 @@ public class Main {
 						
 				ArrayList<String> types = getTypesForIndex(index);
 				
+				//remove the _default_ type since it causes NPEs
+				types.remove("_default_");
+				
 				for(String type : types) {
 					log("Writing data from [" + index + "/" + type + "].",0);
 					
@@ -513,12 +516,15 @@ public class Main {
 		    types.add(entry.getKey());
 		}
 		
-		// first type is always _default_, get it out
-		types.remove(0);
-		
 		return types;
 	}
 	
+	/**
+	 * Convert a JsonObject to a CSV entry based on the given haeders
+	 * @param headers The headers of our CSV file, basically every field that exists for the given index/type
+	 * @param source The source JsonObject we will be converting to CSV
+	 * @return The CSV entry as a String
+	 */
 	public String jsonToCsv(JsonObject headers, JsonObject source) {
 		String out = "";
 		
@@ -552,6 +558,11 @@ public class Main {
 		return unEscapeString(out);
 	}
 	
+	/**
+	 * This method helps keep everything on one nice neat line.
+	 * @param s The String we are processing
+	 * @return The processed String without newlines, tabs, or carriage returns
+	 */
 	public static String unEscapeString(String s) {
 	    StringBuilder sb = new StringBuilder();
 	    for (int i=0; i<s.length(); i++)
@@ -565,6 +576,11 @@ public class Main {
 	    return sb.toString();
 	}
 	
+	/**
+	 * Strip out characters that are reserved by CSV. Easier than working around them for most readers.
+	 * @param s The String we are processing
+	 * @return The processed String without reserved CSV characters
+	 */
 	public static String stripReserved(String s) {
 		StringBuilder sb = new StringBuilder();
 	    for (int i=0; i<s.length(); i++)

@@ -54,16 +54,19 @@ public class run {
 		ParserProperties p = ParserProperties.defaults();
 		CmdLineParser parser = new CmdLineParser(this, p.withOptionValueDelimiter("="));
 		
-
+		//used to better identify problematic CLI args
+		String s = "";
+		
         try {
         	//parser.parseArgument(args);
-        	String s = "";
+        	
         	for(int i=0; i<args.length; i++) {
         		s = args[i];
         		parser.parseArgument(args[i]);
         	}
         } 
         catch( CmdLineException e ) {
+        	System.out.println(s);
             e.printStackTrace();
             return;
         }
