@@ -118,95 +118,101 @@ public class Main {
 				types.remove("_default_");
 				
 				for(String type : types) {
-					log("Writing data from [" + index + "/" + type + "].",0);
-					
-					try{	
-						String scrollId = startIndexScroll(index+"/"+type, 100, outputPath+index+"_"+type+".json", queryString);
-						//Skip scroll if no results
-						if(scrollSize > 0) {
-							int count = 0;
-							int num = (int)Math.ceil((scrollSize+100) / 100);
-							ProgressBar progressBar = ConsoleProgressBar.on(System.out)
-								    .withFormat("[:bar] :percent% :elapsed/:total    ETA: :eta")
-								    .withTotalSteps(num);
+					if(isValidType(type)) {
+						log("Writing data from [" + index + "/" + type + "].",0);
+						
+						try{	
+							String scrollId = startIndexScroll(index+"/"+type, 100, outputPath+index+"_"+type+".json", queryString);
+							//Skip scroll if no results
+							if(scrollSize > 0) {
+								int count = 0;
+								int num = (int)Math.ceil((scrollSize+100) / 100);
+								ProgressBar progressBar = ConsoleProgressBar.on(System.out)
+									    .withFormat("[:bar] :percent% :elapsed/:total    ETA: :eta")
+									    .withTotalSteps(num);
+								
+								totalDocuments += scrollSize;
+								if(outputFormat.equals("json")) {
+									PrintWriter writer = new PrintWriter(outputPath+index+"_"+type+".json", "UTF-8");
+									
+									//process the first few results of the scroll object
+									for(String s : scrollBuffer) {
+										writer.println(s);
+									}
+									
+									//process the rest of the scroll
+									while(count < num) {
+										progressBar.tickOne();
+										JsonObject scroller = getScrollData(scrollId);
+										JsonArray records = (JsonArray)scroller.getAsJsonObject("hits").get("hits");
+										for(int i=0; i<records.size(); i++) {
+											String source = ((JsonObject)(records.get(i))).get("_source").toString();
+											writer.println(source);
+										}
+										count++;;
+									}
+									System.out.println("");
+									writer.close();
+									
+								}
+								else if(outputFormat.equals("csv")) {
+									PrintWriter writer = new PrintWriter(outputPath+index+"_"+type+".csv", "UTF-8");
+									
+									JsonObject headers = getElasticAPI(sourceElasticURL, index+"/"+type+"/_mapping")
+											.getAsJsonObject(index)
+											.getAsJsonObject("mappings")
+											.getAsJsonObject(type)
+											.getAsJsonObject("properties");
+									
+									String headerOut = "";
+									
+									for (Map.Entry<String,JsonElement> entry : headers.entrySet()) {
+									    headerOut +=entry.getKey() + ",";
+									}
+									//remove last comma
+									headerOut = headerOut.substring(0,headerOut.length()-1);
+									writer.println(headerOut);
+									
+									for(String s : scrollBuffer) {
+										JsonParser jp = new JsonParser();
+										try {
+											s = s.replaceAll("^\"|\"$", "");
+											writer.println(jsonToCsv(headers, (JsonObject)jp.parse(s)));
+									    }
+										catch (JsonSyntaxException e) {
+											System.out.println("Malformed JSON received. Check your query's syntax!");
+										}
+									}
+									
+									//process the rest of the scroll
+									while(count < num) {
+										progressBar.tickOne();
+										JsonObject scroller = getScrollData(scrollId);
+										JsonArray records = (JsonArray)scroller.getAsJsonObject("hits").get("hits");
+										for(int i=0; i<records.size(); i++) {
+											writer.println(jsonToCsv(headers, (JsonObject)((JsonObject)(records.get(i))).get("_source")));
+										}
+										count++;;
+									}
+									System.out.println("");
+									writer.close();
+								}
 							
-							totalDocuments += scrollSize;
-							if(outputFormat.equals("json")) {
-								PrintWriter writer = new PrintWriter(outputPath+index+"_"+type+".json", "UTF-8");
-								
-								//process the first few results of the scroll object
-								for(String s : scrollBuffer) {
-									writer.println(s);
-								}
-								
-								//process the rest of the scroll
-								while(count < num) {
-									progressBar.tickOne();
-									JsonObject scroller = getScrollData(scrollId);
-									JsonArray records = (JsonArray)scroller.getAsJsonObject("hits").get("hits");
-									for(int i=0; i<records.size(); i++) {
-										String source = ((JsonObject)(records.get(i))).get("_source").toString();
-										writer.println(source);
-									}
-									count++;;
-								}
-								System.out.println("");
-								writer.close();
-								
 							}
-							else if(outputFormat.equals("csv")) {
-								PrintWriter writer = new PrintWriter(outputPath+index+"_"+type+".csv", "UTF-8");
-								
-								JsonObject headers = getElasticAPI(sourceElasticURL, index+"/"+type+"/_mapping")
-										.getAsJsonObject(index)
-										.getAsJsonObject("mappings")
-										.getAsJsonObject(type)
-										.getAsJsonObject("properties");
-								
-								String headerOut = "";
-								
-								for (Map.Entry<String,JsonElement> entry : headers.entrySet()) {
-								    headerOut +=entry.getKey() + ",";
-								}
-								//remove last comma
-								headerOut = headerOut.substring(0,headerOut.length()-1);
-								writer.println(headerOut);
-								
-								for(String s : scrollBuffer) {
-									JsonParser jp = new JsonParser();
-									try {
-										s = s.replaceAll("^\"|\"$", "");
-										writer.println(jsonToCsv(headers, (JsonObject)jp.parse(s)));
-								    }
-									catch (JsonSyntaxException e) {
-										System.out.println("Malformed JSON received. Check your query's syntax!");
-									}
-								}
-								
-								//process the rest of the scroll
-								while(count < num) {
-									progressBar.tickOne();
-									JsonObject scroller = getScrollData(scrollId);
-									JsonArray records = (JsonArray)scroller.getAsJsonObject("hits").get("hits");
-									for(int i=0; i<records.size(); i++) {
-										writer.println(jsonToCsv(headers, (JsonObject)((JsonObject)(records.get(i))).get("_source")));
-									}
-									count++;;
-								}
-								System.out.println("");
-								writer.close();
-							}
-						
-						}
-						else {
-							log("No results found in [" + index + "/" + type + "]." + " Skipping it.",0);
-						}	
+							else {
+								log("No results found in [" + index + "/" + type + "]." + " Skipping it.",0);
+							}	
 
-						
+							
+						}
+						catch (IOException e) {
+							e.printStackTrace();
+						}
+					} //isValidType
+					else {
+						log("Malformed type found: " + type + ", skipping.",1);
 					}
-					catch (IOException e) {
-						e.printStackTrace();
-					}
+					
 				}
 				
 				
@@ -591,6 +597,12 @@ public class Main {
 	            default: sb.append(s.charAt(i));
 	        }
 	    return sb.toString();
+	}
+	
+	public static boolean isValidType(String s) {
+		Pattern p = Pattern.compile("[\"<>#%\\{\\}\\|\\\\^~\\[\\];/?:@=& ]");
+	    Matcher m = p.matcher(s);
+	    return !m.find();
 	}
 	
 	
