@@ -16,6 +16,9 @@ Sample: java -jar nlsexport.jar -host=localhost -date_start=2015.01.01 -date_end
 ----- Exports all syslog entries (given the query) from the year 2015 into raw JSON (default) into the /home/juser/export_nls path.
 
 ```
+# Version - 1.2.4
+* Fixed an issue with nested JsonObjects throwing UnsupportedOperationException
+
 # Version - 1.2.3
 * Fixed an issue with weird Elasticsearch types causing NPEs
 

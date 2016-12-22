@@ -36,6 +36,7 @@ public class Main {
 	int totalIndices=0;
 	long totalDocuments=0;
 	long scrollSize=0;
+	long startTime=0;
 	
 	public Main(String ip,String start, String end, String path, String format, String query) {
 		dateStart = start;
@@ -73,6 +74,7 @@ public class Main {
 	 * Do the dang thing
 	 */
 	public void doit() {
+		startTime = System.currentTimeMillis();
 		ArrayList<String> indices = getIndicesBetweenDates(dateStart, dateEnd);
 
 		//cycle through every index and do the needful
@@ -228,7 +230,7 @@ public class Main {
 			}
 		}
 		String plural = (totalIndices > 1) ? "indices" : "index";
-		log("Completed export of " + totalIndices + " " + plural + " and " + totalDocuments + " documents.",0);
+		log("Completed export of " + totalIndices + " " + plural + " and " + totalDocuments + " documents, took " + ((System.currentTimeMillis() - startTime)/1000) + " seconds.",0);
 	}
 	
 	/**
@@ -552,7 +554,7 @@ public class Main {
     			Iterator<JsonElement> elements = ((JsonArray)source.get(entry.getKey())).iterator();
     			out += "\"";
     			while(elements.hasNext()) {
-    				 out += stripReserved(elements.next().getAsString()) + " ";
+    				out += stripReserved(elements.next().toString()) + " ";
     			}
     			out += "\",";
     		}

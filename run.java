@@ -126,7 +126,7 @@ public class run {
 	}
 	
 	public static void printUsage() {
-		System.out.println("Version - 1.2.3");
+		System.out.println("Version - 1.2.4");
 		System.out.println("Usage: java -jar nlsexport.jar -host -date_start -date_end -output_path [-output_format] [-query]");
 		System.out.println("host - The hostname or ip address of the remote Elasticsearch machine. Your Elasticsearch API must be front-facing for this application to work.");
 		System.out.println("date_start - The starting date of your data set in yyyy.mm.dd format.");
