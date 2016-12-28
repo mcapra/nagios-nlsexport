@@ -105,7 +105,7 @@ public class Main {
 				//Assess the types used, either from the provided arg or by asking Elasticsearch
 				ArrayList<String> types = new ArrayList<String>();
 				if(!typesString.equals("")) {
-					types.addAll(Arrays.asList(typesString.toLowerCase().split("\\s+")));
+					types.addAll(Arrays.asList(typesString.toLowerCase().split(",")));
 				}
 				else {
 					types = elasticsearch.getTypesForIndex(index);
