@@ -33,12 +33,17 @@ public class run {
     @Option(name="-output_format",usage="(Optional, Default: json) The format you would like your data to be saved in. Acceptable options: csv, json.")
     private String output_format = "json";
     
-    @Option(name="-query",usage="(Optional, No Default) The Elasticsearch query you would like to use to filter your results.")
+    @Option(name="-query",usage="(Optional, No Default) The Elasticsearch query you would like to use to filter your result set.")
     private String query = "";
+    
+    @Option(name="-types",usage="(Optional, No Default) The Elasticsearch types you would like to include in your result set.")
+    private String types = "";
     
     // receives other command line parameters than options
     @Argument
     private static List<String> arguments = new ArrayList<String>();
+    
+    List formats = Arrays.asList("csv", "json", "text");
 
 	public static void main(String[] args) {
 			try {
@@ -71,7 +76,7 @@ public class run {
             return;
         }
 
-        if((args.length > 3) && (args.length < 7)) {
+        if((args.length > 3) && (args.length < 8)) {
         	if(host == null || date_start == null || date_end == null || output_path == null) {
         		System.out.println("Missing required parameter.");
         		printUsage();
@@ -79,38 +84,37 @@ public class run {
         	}
 			if(isValidDate(date_start)) {
 				if(isValidDate(date_end)) {
-					//check output path existence and writability
-					if(Files.isWritable(new File(output_path).toPath())) {
-						//check for trailing slash
-						if(isValidPath(output_path)) {
-							output_path = output_path + "nls-export-" + System.currentTimeMillis() + "/";
-							System.out.println("Creating directory " + output_path + "");
-							File dir = new File(output_path);
-							
-							if(dir.mkdir()) {
-								List formats = Arrays.asList("csv", "json");
-								if(formats.contains(output_format)) {
-									if(isValidJson(query)) {
-										Main m = new Main(host, date_start, date_end, output_path, output_format, query);
+					//check for trailing slash
+					if(isValidPath(output_path)) {
+						if(formats.contains(output_format)) {
+							if(isValidJson(query)) {
+								output_path = output_path + "nls-export-" + System.currentTimeMillis() + "/";
+								System.out.println("Creating directory " + output_path + "");
+								File dir = new File(output_path);
+								if(dir.mkdir()) {
+									//check output path existence and writability
+									if(Files.isWritable(new File(output_path).toPath())) {
+										Main m = new Main(host, date_start, date_end, output_path, output_format, query, types);
 									}
-									else return;
+									else {
+										System.out.println("Cannot write to path \"" + output_path + "\". Please check the path.");
+									}
 								}
 								else {
-									System.out.println("Invalid format. Allowed formats: json, csv.");
+									System.out.println("Unable to create directory \"" + output_path + "\". Check permissions!");
 								}
 							}
-							else {
-								System.out.println("Unable to create directory in \"" + output_path + "\". Check permissions!");
+							else { 
+								System.out.println("Malformed JSON detected in query. Please check your JSON.");
+								System.out.println(query);
 							}
-							
 						}
 						else {
-							System.out.println("Please use a trailing slash on your path! (/path/to/out/, C:\\path\\to\\out\\)");
+							System.out.println("Invalid format. Allowed formats: " + formats.toString());
 						}
-						
 					}
 					else {
-						System.out.println("Cannot write to path \"" + output_path + "\". Please check the path.");
+						System.out.println("Please use a trailing slash on your path! (/path/to/out/, C:\\path\\to\\out\\)");
 					}
 				}
 				else {
@@ -126,19 +130,24 @@ public class run {
 	}
 	
 	public static void printUsage() {
-		System.out.println("Version - 1.2.4");
-		System.out.println("Usage: java -jar nlsexport.jar -host -date_start -date_end -output_path [-output_format] [-query]");
+		System.out.println("Version - 1.3.0");
+		System.out.println("Usage: java -jar nlsexport.jar -host -date_start -date_end -output_path [-output_format] [-query] [-types]");
 		System.out.println("host - The hostname or ip address of the remote Elasticsearch machine. Your Elasticsearch API must be front-facing for this application to work.");
 		System.out.println("date_start - The starting date of your data set in yyyy.mm.dd format.");
 		System.out.println("date_end - The ending date of your data set in yyyy.mm.dd format.");
 		System.out.println("output_path - The path that will contain your data. Many individual files are created, so it is recommended to use a dedicated path.");
-		System.out.println("output_format - OPTIONAL (json default), the format you would like your data to be saved in. Acceptable options: csv, json.");
+		System.out.println("output_format - OPTIONAL (json default), the format you would like your data to be saved in. Acceptable options: csv, json, text. The text option will only export the message field (if it exists).");
 		System.out.println("query - OPTIONAL (no default), the Elasticsearch query you would like to use to filter your results.");
+		System.out.println("types - OPTIONAL (no default), the Elasticsearch types you would like to include in your result set as a comma-delimited list. This is useful if you only want to include certain "
+				+ "types of events (syslog, eventlog, apache_access, etc) without including that information in your query's logic. Including the type in your query logic can be inefficient at times.");
 		System.out.println("------------------------------------------");
 		System.out.println("Sample: java -jar nlsexport.jar -host=192.168.0.1 -date_start=2015.01.01 -date_end=2015.12.31 -output_path=/home/juser/export_nls -output_format=csv");
 		System.out.println("----- Exports all data from the year 2015 into CSV files into the /home/juser/export_nls path.");
-		System.out.println("Sample: java -jar nlsexport.jar -host=localhost -date_start=2015.01.01 -date_end=2015.12.31 -output_path=/home/juser/export_nls -query='{\"query\":{\"query_string\":{\"query\":\"syslog\"}}}'");
-		System.out.println("----- Exports all syslog entries (given the query) from the year 2015 into raw JSON (default) into the /home/juser/export_nls path.");
+		System.out.println("Sample: java -jar nlsexport.jar -host=localhost -date_start=2015.01.01 -date_end=2015.12.31 -output_path=/home/juser/export_nls "
+				+ "-query='{\"query\":{\"query_string\":{\"query\":\"my query string\"}}}'");
+		System.out.println("----- Exports all entries (given the query) from the year 2015 into raw JSON (default) into the /home/juser/export_nls path.");
+		System.out.println("Sample: java -jar nlsexport.jar -host=localhost -date_start=2016.01.01 -date_end=2016.12.31 -output_path=/home/juser/export_nls -types=syslog,eventlog");
+		System.out.println("----- Exports all syslog and eventlog entries from the month of December 2016 into raw JSON (default) into the /home/juser/export_nls path.");
 		
 	}
 	
@@ -169,8 +178,7 @@ public class run {
 	    	json=true;
 	    }
 		catch (JsonSyntaxException e) {
-			System.out.println("Malformed JSON received. Check your query's syntax!");
-			System.out.println(query);
+			System.out.println(e.getMessage());
 			return false;
 		}
 		
